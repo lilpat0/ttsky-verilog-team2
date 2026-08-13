@@ -77,19 +77,16 @@ async def reset_dut(dut):
     dut.ui_in.value = 0
     dut.uio_in.value = 0
 
-    # Five clock cycles in reset
     for _ in range(5):
         await RisingEdge(dut.clk)
 
     dut.rst_n.value = 1
 
-    # Three clocks after reset
     for _ in range(3):
         await RisingEdge(dut.clk)
 
     dut.ena.value = 1
 
-    # Allow enable to propagate
     for _ in range(2):
         await RisingEdge(dut.clk)
 
@@ -249,7 +246,6 @@ def calculate_expected(image, kernel):
                         * kernel[kernel_index]
                     )
 
-            # Physical output is only 6 bits
             expected.append(total & 0x3F)
 
     return expected
@@ -308,6 +304,12 @@ def print_expected(expected):
 
 # ============================================================
 # Read outputs using internal clock
+#
+# IMPORTANT:
+# Gate-level simulation has propagation delay through the
+# synthesized mux/output path.
+#
+# We therefore wait 5 ns after each clock edge before sampling.
 # ============================================================
 
 async def read_internal_clock(dut):
@@ -317,7 +319,6 @@ async def read_internal_clock(dut):
     print("READING OUTPUT USING INTERNAL CLOCK")
     print("--------------------------------------------")
 
-    # Output controller uses internal clk
     uio = int(dut.uio_in.value)
 
     uio &= ~(1 << OUTPUT_ENABLE)
@@ -327,16 +328,18 @@ async def read_internal_clock(dut):
 
     actual = [0] * NUM_OUTPUT
 
-    # Result 0 is already visible when DONE is active.
-    await Timer(1, units="ns")
+    # Allow the gate-level output path to settle.
+    await Timer(5, units="ns")
 
     actual[0] = read_output(dut)
 
-    # Every following system clock advances output index.
+    # Each following system clock advances the output index.
     for j in range(1, NUM_OUTPUT):
 
         await RisingEdge(dut.clk)
-        await Timer(1, units="ns")
+
+        # Allow synthesized logic and output mux to settle.
+        await Timer(5, units="ns")
 
         actual[j] = read_output(dut)
 
@@ -358,15 +361,12 @@ async def read_external_clock(dut):
 
     uio = int(dut.uio_in.value)
 
-    # Enable external clock mode
     uio |= (1 << OUTPUT_ENABLE)
 
-    # External clock starts LOW
     uio &= ~(1 << EXT_CLK)
 
     dut.uio_in.value = uio
 
-    # Give DUT time to see mode change
     for _ in range(4):
         await RisingEdge(dut.clk)
 
@@ -378,7 +378,6 @@ async def read_external_clock(dut):
 
     for j in range(1, NUM_OUTPUT):
 
-        # Make sure EXT_CLK is LOW
         uio = int(dut.uio_in.value)
         uio &= ~(1 << EXT_CLK)
         dut.uio_in.value = uio
@@ -386,22 +385,15 @@ async def read_external_clock(dut):
         for _ in range(2):
             await RisingEdge(dut.clk)
 
-        # ----------------------------------------------------
-        # Rising edge of external clock
-        # ----------------------------------------------------
-
+        # External-clock rising edge
         uio = int(dut.uio_in.value)
         uio |= (1 << EXT_CLK)
         dut.uio_in.value = uio
 
-        # Allow external-clock event to propagate
         for _ in range(4):
             await RisingEdge(dut.clk)
 
-        # ----------------------------------------------------
-        # Return external clock LOW
-        # ----------------------------------------------------
-
+        # External clock LOW
         uio = int(dut.uio_in.value)
         uio &= ~(1 << EXT_CLK)
         dut.uio_in.value = uio
@@ -413,7 +405,6 @@ async def read_external_clock(dut):
 
         actual[j] = read_output(dut)
 
-    # Return to normal state
     uio = int(dut.uio_in.value)
     uio &= ~(1 << EXT_CLK)
     uio &= ~(1 << OUTPUT_ENABLE)
@@ -538,7 +529,7 @@ def print_output_matrices(
 
 
 # ============================================================
-# TEST 1
+# TEST SETUPS
 # ============================================================
 
 def setup_mixed_test():
@@ -563,10 +554,6 @@ def setup_mixed_test():
     return image, kernel
 
 
-# ============================================================
-# TEST 2: +127 / +127
-# ============================================================
-
 def setup_positive_extreme():
 
     image = [127] * NUM_IMAGE
@@ -575,10 +562,6 @@ def setup_positive_extreme():
     return image, kernel
 
 
-# ============================================================
-# TEST 3: -128 / +127
-# ============================================================
-
 def setup_negative_extreme():
 
     image = [-128] * NUM_IMAGE
@@ -586,10 +569,6 @@ def setup_negative_extreme():
 
     return image, kernel
 
-
-# ============================================================
-# TEST 4: -128 / -128
-# ============================================================
 
 def setup_min_min():
 
@@ -651,27 +630,19 @@ async def run_test(dut, image, kernel):
 @cocotb.test()
 async def test_cnn_accelerator(dut):
 
-    # --------------------------------------------------------
-    # Start 100 MHz clock
-    # 10 ns period = 100 MHz
-    # --------------------------------------------------------
-
+    # 100 MHz clock
     cocotb.start_soon(
         Clock(dut.clk, 10, units="ns").start()
     )
-
-    # --------------------------------------------------------
-    # Initial values
-    # --------------------------------------------------------
 
     dut.ena.value = 0
     dut.rst_n.value = 0
     dut.ui_in.value = 0
     dut.uio_in.value = 0
 
-    # --------------------------------------------------------
+    # ========================================================
     # TEST 1
-    # --------------------------------------------------------
+    # ========================================================
 
     print()
     print("############################################")
@@ -694,9 +665,9 @@ async def test_cnn_accelerator(dut):
 
     assert result, "TEST 1 FAILED"
 
-    # --------------------------------------------------------
+    # ========================================================
     # TEST 2
-    # --------------------------------------------------------
+    # ========================================================
 
     print()
     print("############################################")
@@ -719,9 +690,9 @@ async def test_cnn_accelerator(dut):
 
     assert result, "TEST 2 FAILED"
 
-    # --------------------------------------------------------
+    # ========================================================
     # TEST 3
-    # --------------------------------------------------------
+    # ========================================================
 
     print()
     print("############################################")
@@ -744,9 +715,9 @@ async def test_cnn_accelerator(dut):
 
     assert result, "TEST 3 FAILED"
 
-    # --------------------------------------------------------
+    # ========================================================
     # TEST 4
-    # --------------------------------------------------------
+    # ========================================================
 
     print()
     print("############################################")
@@ -769,9 +740,9 @@ async def test_cnn_accelerator(dut):
 
     assert result, "TEST 4 FAILED"
 
-    # --------------------------------------------------------
-    # Complete
-    # --------------------------------------------------------
+    # ========================================================
+    # COMPLETE
+    # ========================================================
 
     print()
     print("============================================")
