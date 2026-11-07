@@ -1,4 +1,6 @@
 ## How it works
+Developed with Beaverworks Basics of ASICs
+<img width="554" height="554" alt="image" src="https://github.com/user-attachments/assets/080de240-357f-4bc7-afd7-b4b7242ff319" />
 
 This project implements a hardware accelerator for performing a 3x3 convolution on an 8x8 input image using the IM2COL method.
 
