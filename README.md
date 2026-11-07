@@ -1,3 +1,4 @@
+![Repository Banner](bwsi.jpg)
 ## How It Works
 Developed as part of the **MIT Beaver Works Summer Institute (BWSI) Basics of ASICs program**, this project implements a hardware accelerator that performs 3×3 convolution on an 8×8 image using the IM2COL method.
 
