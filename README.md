@@ -1,5 +1,4 @@
 ## How It Works
-![MIT Beaver Works Banner](https://github.com/user-attachments/assets/080de240-357f-4bc7-afd7-b4b7242ff319)
 Developed as part of the **MIT Beaver Works Summer Institute (BWSI) Basics of ASICs program**, this project implements a hardware accelerator that performs 3×3 convolution on an 8×8 image using the IM2COL method.
 
 <img width="738" height="210" alt="image" src="https://github.com/user-attachments/assets/77c271d0-396f-400c-9ad0-d7e23e99d4ad" />
