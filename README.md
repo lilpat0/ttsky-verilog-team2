@@ -1,42 +1,22 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
+## How It Works
 
-# Tiny Tapeout Verilog Project Template
+Developed as part of the **MIT Beaver Works Summer Institute (BWSI) Basics of ASICs program**, this project implements a hardware accelerator that performs 3×3 convolution on an 8×8 image using the IM2COL method.
 
-- [Read the documentation for project](docs/info.md)
+<img width="738" height="210" alt="image" src="https://github.com/user-attachments/assets/77c271d0-396f-400c-9ad0-d7e23e99d4ad" />
 
-## What is Tiny Tapeout?
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+The accelerator stores the image (64 8-bit pixels) and convolution kernel (9 8-bit weights) in separate memories. An IM2COL image provider, matrix multiplication sequencer, and multiply-accumulate (MAC) unit work together to calculate the convolution.
 
-To learn more and get started, visit https://tinytapeout.com.
+The resulting 6×6 output contains 36 values, which are stored internally and can be read once processing is complete. The design exposes the lower 6 bits of each accumulated result through its output interface.
 
-## Set up your Verilog project
+## How to Test
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+After resetting the accelerator, load the 64 image values and 9 kernel weights through the shared 8-bit input bus using their respective write-enable signals. Once both memories are loaded, assert `start` to begin computation.
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+The `busy` signal indicates active processing, and `done` signals completion. The 36 results can then be read through `output_data`, using either the internal output clock or the external `ext_clk` interface.
 
-## Enable GitHub actions to build the results page
+An included Cocotb testbench automates memory loading, starts the accelerator, reads the results, and verifies them against expected convolution values.
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+**No external hardware is required.** The accelerator uses the Tiny Tapeout digital I/O interface.
 
-## Resources
-
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
-
-## What next?
-
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+For additional implementation details, testing instructions, and documentation, see [`docs/info.md`](docs/info.md).
